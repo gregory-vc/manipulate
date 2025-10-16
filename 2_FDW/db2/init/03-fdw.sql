@@ -11,12 +11,20 @@ ON ALL TABLES IN SCHEMA public TO user_connect;
 GRANT USAGE, SELECT ON ALL SEQUENCES
 IN SCHEMA public TO user_connect;
 
-CREATE EXTENSION postgres_fdw;
+CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
-CREATE SERVER my_work_server
+-- Create FDW server pointing to db1
+CREATE SERVER my_work_server_name
 FOREIGN DATA WRAPPER postgres_fdw
 OPTIONS (host 'db1', port '5432', dbname 'db1');
 
-CREATE USER MAPPING FOR user_connect
-SERVER my_work_server
-OPTIONS(USER 'user_connect', password 'user_connect');
+-- User mappings: allow both superuser (sounder) and app user to use the server
+CREATE USER MAPPING IF NOT EXISTS FOR user_connect
+SERVER my_work_server_name
+OPTIONS (user 'user_connect', password 'user_connect');
+
+GRANT USAGE ON FOREIGN SERVER my_work_server_name TO user_connect;
+
+-- Ensure the executing role can create objects in target schema for IMPORT
+GRANT USAGE, CREATE ON SCHEMA public TO CURRENT_USER;
+GRANT USAGE ON FOREIGN SERVER my_work_server_name TO CURRENT_USER;
