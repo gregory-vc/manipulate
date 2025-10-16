@@ -1,0 +1,44 @@
+services:
+  db1:
+    build:
+      context: ./db1
+      dockerfile: Dockerfile
+    container_name: postgres-db1
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: db1
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata1:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d db1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  db2:
+    build:
+      context: ./db2
+      dockerfile: Dockerfile
+    container_name: postgres-db2
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: db2
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata2:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d db2"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgdata1: {}
+  pgdata2: {}
