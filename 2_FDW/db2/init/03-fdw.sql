@@ -13,7 +13,7 @@ IN SCHEMA public TO user_connect;
 
 CREATE EXTENSION postgres_fdw;
 
-CREATE SERVER my_work_server_name
+CREATE SERVER my_work_server
 FOREIGN DATA WRAPPER postgres_fdw
 OPTIONS (host 'db1', port '5432', dbname 'db1');
 
