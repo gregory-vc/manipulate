@@ -34,6 +34,10 @@ CREATE USER MAPPING IF NOT EXISTS FOR user_connect
 SERVER my_work_server_name
 OPTIONS (user 'user_connect', password 'user_connect');
 
+CREATE USER MAPPING IF NOT EXISTS FOR user
+SERVER my_work_server_name
+OPTIONS (user 'user_connect', password 'user_connect');
+
 GRANT USAGE ON FOREIGN SERVER my_work_server_name TO user_connect;
 
 -- Ensure the executing role can create objects in target schema for IMPORT
