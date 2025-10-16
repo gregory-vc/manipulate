@@ -11,6 +11,17 @@ ON ALL TABLES IN SCHEMA public TO user_connect;
 GRANT USAGE, SELECT ON ALL SEQUENCES
 IN SCHEMA public TO user_connect;
 
+GRANT CONNECT ON DATABASE db2
+TO CURRENT_USER;
+
+GRANT USAGE ON SCHEMA public TO CURRENT_USER;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON ALL TABLES IN SCHEMA public TO CURRENT_USER;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES
+IN SCHEMA public TO CURRENT_USER;
+
 CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
 -- Create FDW server pointing to db1
@@ -26,5 +37,8 @@ OPTIONS (user 'user_connect', password 'user_connect');
 GRANT USAGE ON FOREIGN SERVER my_work_server_name TO user_connect;
 
 -- Ensure the executing role can create objects in target schema for IMPORT
+GRANT USAGE, CREATE ON SCHEMA public TO user_connect;
+GRANT USAGE ON FOREIGN SERVER my_work_server_name TO user_connect;
+
 GRANT USAGE, CREATE ON SCHEMA public TO CURRENT_USER;
 GRANT USAGE ON FOREIGN SERVER my_work_server_name TO CURRENT_USER;

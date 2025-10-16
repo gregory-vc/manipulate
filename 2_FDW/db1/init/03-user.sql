@@ -10,3 +10,5 @@ ON ALL TABLES IN SCHEMA public TO user_connect;
 
 GRANT USAGE, SELECT ON ALL SEQUENCES
 IN SCHEMA public TO user_connect;
+
+GRANT USAGE, CREATE ON SCHEMA public TO user_connect;
