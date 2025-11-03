@@ -35,8 +35,8 @@ lang: ru-RU
 
 \begin{flushright}
 \begin{tabular}{r}
-Выполнила: студентка 3 курса, гр. ИБ-31вп\\
-\underline{\hspace{6cm}} Киселева А. Е.\\[1.5em]
+Выполнил: студент 3 курса, гр. ИБ-31вп\\
+\underline{\hspace{6cm}} Ворожцов А. Е.\\[1.5em]
 Принял:\\
 \underline{\hspace{6cm}} Медведев С. А.
 \end{tabular}
@@ -104,6 +104,8 @@ VALUES (2015, 1, 1, 1, 2, 19.10),
 
 Последовательный запуск `make run_all` выполняет сборку контейнера, все варианты резервного копирования и восстановление данных. Ниже приведен полный вывод, начиная с шага «Делаем резервное копирование данных в формате custom».
 
+\subsection*{Резервное копирование в формате custom}
+
 ````{=latex}
 \begin{myverb}
 /Applications/Xcode.app/Contents/Developer/usr/bin/make build
@@ -140,17 +142,18 @@ docker compose down -v && docker compose up -d --build
  ✔ Network 1_backup_default  Created                                                                                                        0.0s 
  ✔ Volume 1_backup_pgdata1   Created                                                                                                        0.0s 
  ✔ Container postgres-db1    Started                                                                                                        0.1s 
-
-Делаем резервное копирование данных в формате custom.
-
 /Applications/Xcode.app/Contents/Developer/usr/bin/make 1_backup_custom
 ./scripts/backup_custom.sh db1_custom.dump
 Waiting for db1 to become ready...
 Writing custom-format backup to /Users/ami/source/manipulate/1_BACKUP/backups/db1_custom.dump
 Backup completed.
+\end{myverb}
+````
 
-Проверяем какие данные содержатся в данный момент и выполняем обновление.
+\subsection*{Проверка и изменение данных перед восстановлением}
 
+````{=latex}
+\begin{myverb}
 /Applications/Xcode.app/Contents/Developer/usr/bin/make 7_show_update_experiment
 ./scripts/show_update_experiment.sh
 Waiting for db1 to become ready...
@@ -159,15 +162,18 @@ BEGIN
 ----+------+-------+------------+----------------+--------------+-------
  14 | 2015 |     7 |          3 |              3 |            1 | 28.30
 (1 row)
-
 UPDATE 1
  id | year | field | culture_id | predecessor_id | condition_id | yield 
 ----+------+-------+------------+----------------+--------------+-------
  14 | 2025 |     7 |          3 |              3 |            1 | 28.30
 (1 row)
+\end{myverb}
+````
 
-Выполняем восстановление базы данных и проверяем, что изменения откатились.
+\subsection*{Восстановление и проверка результата}
 
+````{=latex}
+\begin{myverb}
 COMMIT
 /Applications/Xcode.app/Contents/Developer/usr/bin/make 2_restore_custom
 ./scripts/restore_custom.sh ./backups/db1_custom.dump
@@ -181,9 +187,13 @@ Waiting for db1 to become ready...
 ----+------+-------+------------+----------------+--------------+-------
  14 | 2015 |     7 |          3 |              3 |            1 | 28.30
 (1 row)
+\end{myverb}
+````
 
-Выполняем plain-бэкапы с разными вариантами параметра `Sections` (all, pre, data, post).
+\subsection*{Plain-бэкапы с различными Section}
 
+````{=latex}
+\begin{myverb}
 /Applications/Xcode.app/Contents/Developer/usr/bin/make 3_backup_sections
 ./scripts/backup_plain_sections.sh
 Waiting for db1 to become ready...
@@ -207,9 +217,13 @@ Waiting for db1 to become ready...
 Dumping post-data section
 Section-specific backups are stored in /Users/ami/source/manipulate/1_BACKUP/backups/plain_sections
 /Applications/Xcode.app/Contents/Developer/usr/bin/make 4_backup_types
+\end{myverb}
+````
 
-Проверяем влияние настроек `Type of objects` при режимах Only Schema и Only Data.
+\subsection*{Проверка влияния настроек Type of objects}
 
+````{=latex}
+\begin{myverb}
 ./scripts/backup_plain_types.sh
 Waiting for db1 to become ready...
 Dumping schema-only script
@@ -225,9 +239,13 @@ Type-specific backups are stored in /Users/ami/source/manipulate/1_BACKUP/backup
 Waiting for db1 to become ready...
 Dumping data-only script
 Type-specific backups are stored in /Users/ami/source/manipulate/1_BACKUP/backups/plain_types
+\end{myverb}
+````
 
-Создаем резервную копию в формате `Directory` и выполняем восстановление.
+\subsection*{Резервная копия в формате Directory и восстановление}
 
+````{=latex}
+\begin{myverb}
 /Applications/Xcode.app/Contents/Developer/usr/bin/make 5_backup_directory
 ./scripts/backup_directory.sh
 Waiting for db1 to become ready...
