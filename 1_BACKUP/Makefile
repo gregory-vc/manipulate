@@ -74,7 +74,7 @@ run_all:
 	$(MAKE) 6_restore_directory
 
 report_pdf:
-	pandoc report.md -o report.pdf \
+	pandoc report.tex -o report.pdf \
 		--from=markdown+emoji+raw_tex \
 		--pdf-engine=/Library/TeX/texbin/xelatex \
 		--syntax-highlighting=tango \
