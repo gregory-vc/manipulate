@@ -1,6 +1,6 @@
 .PHONY: build \
-	1_backup_default \
-	2_restore_default \
+	1_backup_custom \
+	2_restore_custom \
 	3_backup_sections \
 	3_sections_pre \
 	3_sections_data \
@@ -11,16 +11,17 @@
 	5_backup_directory \
 	6_restore_directory \
 	7_show_update_experiment \
-	8_show_experiment
+	8_show_experiment \
+	run_all
 
 build:
 	docker compose down -v && docker compose up -d --build
 
-1_backup_default:
-	./scripts/backup_default.sh
+1_backup_custom:
+	./scripts/backup_custom.sh db1_custom.dump
 
-2_restore_default:
-	./scripts/restore_default.sh
+2_restore_custom:
+	./scripts/restore_custom.sh ./backups/db1_custom.dump
 
 3_backup_sections:
 	./scripts/backup_plain_sections.sh
@@ -54,3 +55,20 @@ build:
 
 8_show_experiment:
 	./scripts/show_experiment.sh
+
+run_all:
+	$(MAKE) build
+	$(MAKE) 1_backup_custom
+	$(MAKE) 7_show_update_experiment
+	$(MAKE) 2_restore_custom
+	$(MAKE) 8_show_experiment
+	$(MAKE) 3_backup_sections
+	$(MAKE) 3_sections_pre
+	$(MAKE) 3_sections_data
+	$(MAKE) 3_sections_post
+	$(MAKE) 4_backup_types
+	$(MAKE) 4_type_schema
+	$(MAKE) 4_type_data
+	$(MAKE) 5_backup_directory
+	$(MAKE) 6_restore_directory
+	

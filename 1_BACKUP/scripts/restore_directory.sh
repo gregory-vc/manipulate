@@ -1,41 +1,39 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Restore the database from a directory-format backup.
+ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+COMPOSE=(docker compose -f "$ROOT_DIR/docker-compose.yml")
+HOST_DIR="$ROOT_DIR/backups/directory"
 
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-source "$SCRIPT_DIR/common.sh"
-
-ensure_backup_dir
-mkdir -p "$BACKUP_ROOT/directory"
-
-SOURCE_PATH="${1:-}"
-
-if [[ -z "$SOURCE_PATH" ]]; then
-  SOURCE_PATH=$(ls -dt "$BACKUP_ROOT"/directory/* 2>/dev/null | head -n 1 || true)
-  if [[ -z "$SOURCE_PATH" ]]; then
-    echo "No directory backups found in $BACKUP_ROOT/directory" >&2
+SOURCE="${1:-}"
+if [[ -z "$SOURCE" ]]; then
+  SOURCE=$(ls -dt "$HOST_DIR"/* 2>/dev/null | head -n 1 || true)
+  if [[ -z "$SOURCE" ]]; then
+    echo "No directory backups found in $HOST_DIR" >&2
     exit 1
   fi
-  echo "Using latest directory backup: $SOURCE_PATH"
+  echo "Using latest directory backup: $SOURCE"
 fi
 
-if [[ ! -d "$SOURCE_PATH" ]]; then
-  echo "Source directory not found: $SOURCE_PATH" >&2
+if [[ ! -d "$SOURCE" ]]; then
+  echo "Source directory not found: $SOURCE" >&2
   exit 1
 fi
 
-BASENAME=$(basename "$SOURCE_PATH")
-CONTAINER_DIR="/tmp/$BASENAME"
+echo "Waiting for db1 to become ready..."
+until "${COMPOSE[@]}" exec -T db1 pg_isready -U user -d db1 >/dev/null 2>&1; do
+  sleep 1
+done
 
-echo "Copying $SOURCE_PATH into container path $CONTAINER_DIR"
-compose exec -T "$DB_SERVICE" bash -lc "rm -rf '$CONTAINER_DIR'"
-compose cp "$SOURCE_PATH" "$DB_SERVICE:$CONTAINER_DIR"
+NAME=$(basename "$SOURCE")
+CONTAINER_PATH="/tmp/$NAME"
 
-echo "Restoring $PGDATABASE from directory backup"
-compose exec -T "$DB_SERVICE" pg_restore -U "$PGUSER" -d "$PGDATABASE" -c "$CONTAINER_DIR"
+echo "Copying $SOURCE into container path $CONTAINER_PATH"
+"${COMPOSE[@]}" exec -T db1 bash -lc "rm -rf '$CONTAINER_PATH'"
+"${COMPOSE[@]}" cp "$SOURCE" db1:"$CONTAINER_PATH"
 
-echo "Cleaning up container path"
-compose exec -T "$DB_SERVICE" bash -lc "rm -rf '$CONTAINER_DIR'"
+echo "Restoring db1 from directory backup"
+"${COMPOSE[@]}" exec -T db1 pg_restore -U user -d db1 -c "$CONTAINER_PATH"
+"${COMPOSE[@]}" exec -T db1 bash -lc "rm -rf '$CONTAINER_PATH'"
 
 echo "Directory restore completed."
