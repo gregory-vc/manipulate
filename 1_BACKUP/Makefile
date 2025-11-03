@@ -12,7 +12,8 @@
 	6_restore_directory \
 	7_show_update_experiment \
 	8_show_experiment \
-	run_all
+	run_all \
+	report_pdf
 
 build:
 	docker compose down -v && docker compose up -d --build
@@ -71,4 +72,12 @@ run_all:
 	$(MAKE) 4_type_data
 	$(MAKE) 5_backup_directory
 	$(MAKE) 6_restore_directory
-	
+
+report_pdf:
+	pandoc report.md -o report.pdf \
+		--from=markdown+emoji+raw_tex \
+		--pdf-engine=/Library/TeX/texbin/xelatex \
+		--syntax-highlighting=tango \
+		-V geometry:margin=2cm -V colorlinks=true \
+		-V mainfont="Times New Roman" -V monofont="Menlo" \
+		--resource-path=".:assets"
