@@ -6,6 +6,10 @@ COMPOSE=(docker compose -f "$ROOT_DIR/docker-compose.yml")
 BACKUPS="$ROOT_DIR/backups"
 mkdir -p "$BACKUPS"
 
+echo "Waiting for db1 container health..."
+until "${COMPOSE[@]}" ps --format json db1 2>/dev/null | grep -q '"Health":"healthy"'; do
+  sleep 1
+done
 echo "Waiting for db1 to become ready..."
 until "${COMPOSE[@]}" exec -T db1 pg_isready -U user -d db1 >/dev/null 2>&1; do
   sleep 1
