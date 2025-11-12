@@ -16,6 +16,15 @@ ON CONFLICT (key_name_sha256) DO UPDATE
       created_at = now();
 SQL
 
+echo "[demo] Сбрасываем предыдущие демо данные"
+docker compose exec -T db2 psql -U user -d db2 <<'SQL'
+WITH victims AS (
+  SELECT digest(email, 'sha256') AS key_name FROM employees
+)
+DELETE FROM keys WHERE key_name_sha256 IN (SELECT key_name FROM victims);
+TRUNCATE TABLE employees RESTART IDENTITY;
+SQL
+
 echo "[demo] Добавляем демо данные"
 docker compose exec -T db2 psql -U user -d db2 <<'SQL'
 SELECT add_employee('Alice', 'alice@example.com', '+1-111-111-1111', 'Engineer', '120000');
@@ -26,7 +35,7 @@ SELECT add_employee('Eve', 'eve@example.com', '+1-555-555-5555', 'CISO', '200000
 SQL
 
 echo "[demo] Чистый вывод данных"
-docker compose exec -T db2 psql -U user -d db2 -c "TABLE employees;"
+docker compose exec -T db2 psql -U user -d db2 -c "SELECT id, name, email, phone, \"position\", left(encode(salary,'hex'),3) || '***' AS salary_enc, created_at FROM employees ORDER BY id;"
 
 echo "[demo] Попытка с неправильным паролем"
 set +e

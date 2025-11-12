@@ -4,4 +4,4 @@ CREATE TABLE IF NOT EXISTS keys (
     created_at      TIMESTAMPTZ DEFAULT now()
 );
 
-GRANT SELECT, INSERT, UPDATE ON TABLE keys TO user_connect;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE keys TO user_connect;
