@@ -31,7 +31,7 @@ OPTIONS (
     port '5432',
     dbname 'db1',
     sslmode 'verify-full',
-    sslrootcert '/var/lib/postgresql/shared-ssl/db1-server.crt'
+    sslrootcert '/certs/db1-server.crt'
 );
 
 CREATE USER MAPPING IF NOT EXISTS FOR user_connect

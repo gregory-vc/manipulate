@@ -2,7 +2,7 @@
 set -eu
 
 CERT_SUBJ="/CN=db2"
-SHARED_SSL_DIR="/var/lib/postgresql/shared-ssl"
+SHARED_SSL_DIR="/certs"
 SHARED_CERT="$SHARED_SSL_DIR/db2-server.crt"
 
 mkdir -p "$SHARED_SSL_DIR"

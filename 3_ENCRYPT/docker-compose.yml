@@ -13,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata1:/var/lib/postgresql/data
-      - ./shared-ssl:/var/lib/postgresql/shared-ssl
+      - ./shared-ssl:/certs
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d db1"]
       interval: 5s
@@ -34,7 +34,7 @@ services:
       - "5433:5432"
     volumes:
       - pgdata2:/var/lib/postgresql/data
-      - ./shared-ssl:/var/lib/postgresql/shared-ssl
+      - ./shared-ssl:/certs
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d db2"]
       interval: 5s

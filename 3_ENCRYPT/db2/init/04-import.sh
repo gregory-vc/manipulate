@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-SSL_ROOT_CERT="/var/lib/postgresql/shared-ssl/db1-server.crt"
+SSL_ROOT_CERT="/certs/db1-server.crt"
 
 echo "[db2] Waiting for db1 SSL certificate..."
 for i in $(seq 1 60); do
