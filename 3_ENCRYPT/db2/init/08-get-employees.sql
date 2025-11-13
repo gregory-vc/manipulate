@@ -12,7 +12,6 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     v_master_hash TEXT;
-    v_supplied_hash TEXT := encode(digest(coalesce(p_password, ''), 'sha256'), 'hex');
 BEGIN
     SELECT key_material
       INTO v_master_hash
@@ -23,7 +22,7 @@ BEGIN
         RAISE EXCEPTION 'Master key is not configured in keys table';
     END IF;
 
-    IF v_master_hash <> v_supplied_hash THEN
+    IF crypt(coalesce(p_password, ''), v_master_hash) <> v_master_hash THEN
         RAISE EXCEPTION 'Invalid password';
     END IF;
 

@@ -10,16 +10,17 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     v_key_name BYTEA := digest(p_email, 'sha256');
-    v_key_material TEXT := encode(gen_random_bytes(32), 'base64');
+    v_key_material TEXT;
     v_salary_encrypted BYTEA;
     v_employee_id INTEGER;
 BEGIN
-    UPDATE keys
-       SET key_material = v_key_material,
-           created_at = now()
+    SELECT key_material
+      INTO v_key_material
+      FROM keys
      WHERE key_name_sha256 = v_key_name;
 
     IF NOT FOUND THEN
+        v_key_material := encode(gen_random_bytes(32), 'base64');
         INSERT INTO keys (key_name_sha256, key_material, created_at)
         VALUES (v_key_name, v_key_material, now());
     END IF;

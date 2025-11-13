@@ -7,7 +7,7 @@ echo "[demo] Добавляем мастер-пароль db1"
 docker compose exec -T db1 psql -U user -d db1 <<SQL
 WITH master_key AS (
   SELECT digest('', 'sha256') AS key_name,
-         encode(digest('${MASTER_PASSWORD}', 'sha256'), 'hex') AS key_material
+         crypt('${MASTER_PASSWORD}', gen_salt('bf')) AS key_material
 )
 INSERT INTO keys (key_name_sha256, key_material)
 SELECT key_name, key_material FROM master_key
