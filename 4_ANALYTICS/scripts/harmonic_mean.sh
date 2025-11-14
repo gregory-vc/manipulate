@@ -6,11 +6,11 @@ DB2_SERVICE=${DB2_SERVICE:-"db2"}
 DB1_SERVICE=${DB1_SERVICE:-"db1"}
 
 if ! $COMPOSE_CMD ps --status running "$DB2_SERVICE" >/dev/null 2>&1; then
-    echo "Service '$DB2_SERVICE' is not running. Start it with 'docker compose up -d $DB2_SERVICE' or 'make build'." >&2
+    echo "Сервис '$DB2_SERVICE' не запущен. Запустите: 'docker compose up -d $DB2_SERVICE' или 'make build'." >&2
     exit 1
 fi
 if ! $COMPOSE_CMD ps --status running "$DB1_SERVICE" >/dev/null 2>&1; then
-    echo "Service '$DB1_SERVICE' is not running. Start it with 'docker compose up -d $DB1_SERVICE' or 'make build'." >&2
+    echo "Сервис '$DB1_SERVICE' не запущен. Запустите: 'docker compose up -d $DB1_SERVICE' или 'make build'." >&2
     exit 1
 fi
 
@@ -73,3 +73,17 @@ $COMPOSE_CMD exec -T "$DB2_SERVICE" psql -U user -d db2 -v ON_ERROR_STOP=1 -c "
   SELECT dishtype_id, dishtype_name, cook_id, cook_name, harmonic_price_per_portion, dish_names
   FROM canteen_price_h_mean_cube
   WHERE dishtype_id = 6 AND cook_id = 20;"
+
+echo "\n=== Запрос куба через db1 (FDW → db2, user=cube_reader) ==="
+
+DB1_FDW_CHECK=$($COMPOSE_CMD exec -T "$DB1_SERVICE" sh -lc "psql -U user -d db1 -tAc \"SELECT to_regclass('public.v_canteen_price_h_mean_cube') IS NOT NULL\" | tr -d '[:space:]'" 2>/dev/null || true)
+if [ "${DB1_FDW_CHECK}" != "t" ]; then
+  echo "В db1 отсутствует внешняя таблица v_canteen_price_h_mean_cube. Пересоберите окружение ('make build'), чтобы стартовый скрипт db1 создал FDW." >&2
+else
+  $COMPOSE_CMD exec -T "$DB1_SERVICE" psql -U user -d db1 -v ON_ERROR_STOP=1 -c "
+    SELECT dishtype_id, dishtype_name, cook_id, cook_name,
+           harmonic_price_per_portion
+    FROM v_canteen_price_h_mean_cube
+    ORDER BY dishtype_id NULLS FIRST, cook_id NULLS FIRST
+    LIMIT 10;"
+fi
