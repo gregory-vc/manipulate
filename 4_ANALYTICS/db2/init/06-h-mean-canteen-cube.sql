@@ -17,8 +17,6 @@
 -- Важно: арифметическое среднее уместно при равном числе порций на позицию;
 -- гармоническое — при равном бюджете на позицию. Здесь используем второе.
 
-DROP MATERIALIZED VIEW IF EXISTS canteen_price_h_mean_cube;
-
 CREATE MATERIALIZED VIEW canteen_price_h_mean_cube AS
 SELECT
     d.dishtype                                       AS dishtype_id,

@@ -1,9 +1,12 @@
-CREATE USER user_connect WITH PASSWORD 'user_connect';
+CREATE USER fdw_reader_db1 WITH PASSWORD 'fdw_reader_db1';
 
-GRANT CONNECT ON DATABASE db1 TO user_connect;
+GRANT CONNECT ON DATABASE db1 TO fdw_reader_db1;
 
--- Доступ только на чтение для потребителя через FDW (db2)
-GRANT USAGE ON SCHEMA public TO user_connect;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO user_connect;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO user_connect;
--- Не даем CREATE на схеме: user_connect строго read-only
+GRANT USAGE ON SCHEMA public TO fdw_reader_db1;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO fdw_reader_db1;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO fdw_reader_db1;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT ON TABLES TO fdw_reader_db1;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO fdw_reader_db1;

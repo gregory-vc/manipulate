@@ -16,13 +16,13 @@ fi
 
 CHECK=$($COMPOSE_CMD exec -T "$DB2_SERVICE" sh -lc "psql -U user -d db2 -tAc \"SELECT to_regclass('public.canteen_price_h_mean_cube') IS NOT NULL\" | tr -d '[:space:]'" 2>/dev/null || true)
 if [ "${CHECK}" != "t" ]; then
-  echo "Вью canteen_price_h_mean_cube не создана" >&2
+  echo "Материализованный куб canteen_price_h_mean_cube не создан" >&2
   exit 1
 fi
 
 # Важно: запись выполняем в db1 напрямую, а чтение — из db2 через FDW.
 
-echo "=== Обновляем вью ==="
+echo "=== Обновляем куб ==="
 $COMPOSE_CMD exec -T "$DB2_SERVICE" psql -U user -d db2 -v ON_ERROR_STOP=1 -c "REFRESH MATERIALIZED VIEW canteen_price_h_mean_cube;"
 
 echo "=== Весь куб ==="
@@ -74,16 +74,16 @@ $COMPOSE_CMD exec -T "$DB2_SERVICE" psql -U user -d db2 -v ON_ERROR_STOP=1 -c "
   FROM canteen_price_h_mean_cube
   WHERE dishtype_id = 6 AND cook_id = 20;"
 
-echo "\n=== Запрос куба через db1 (FDW → db2, user=cube_reader) ==="
+echo "\n=== Запрос куба через db1 (FDW → db2, user=fdw_reader_db2) ==="
 
-DB1_FDW_CHECK=$($COMPOSE_CMD exec -T "$DB1_SERVICE" sh -lc "psql -U user -d db1 -tAc \"SELECT to_regclass('public.v_canteen_price_h_mean_cube') IS NOT NULL\" | tr -d '[:space:]'" 2>/dev/null || true)
+DB1_FDW_CHECK=$($COMPOSE_CMD exec -T "$DB1_SERVICE" sh -lc "psql -U user -d db1 -tAc \"SELECT to_regclass('public.canteen_price_h_mean_cube') IS NOT NULL\" | tr -d '[:space:]'" 2>/dev/null || true)
 if [ "${DB1_FDW_CHECK}" != "t" ]; then
-  echo "В db1 отсутствует внешняя таблица v_canteen_price_h_mean_cube. Пересоберите окружение ('make build'), чтобы стартовый скрипт db1 создал FDW." >&2
+  echo "В db1 отсутствует внешняя таблица canteen_price_h_mean_cube. Пересоберите окружение ('make build'), чтобы стартовый скрипт db1 создал FDW." >&2
 else
   $COMPOSE_CMD exec -T "$DB1_SERVICE" psql -U user -d db1 -v ON_ERROR_STOP=1 -c "
     SELECT dishtype_id, dishtype_name, cook_id, cook_name,
            harmonic_price_per_portion
-    FROM v_canteen_price_h_mean_cube
+    FROM canteen_price_h_mean_cube
     ORDER BY dishtype_id NULLS FIRST, cook_id NULLS FIRST
     LIMIT 10;"
 fi

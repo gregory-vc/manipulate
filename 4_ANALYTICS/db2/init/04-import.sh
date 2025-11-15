@@ -10,19 +10,20 @@ for i in $(seq 1 60); do
   sleep 1
 done
 
-echo "[db2] Ждем авторизации user_connect в db1..."
+echo "[db2] Ждем авторизации fdw_reader_db1 в db1..."
 for i in $(seq 1 60); do
-  if PGPASSWORD=user_connect psql -h db1 -p 5432 -U user_connect -d db1 -tAc 'SELECT 1' >/dev/null 2>&1; then
-    echo "[db2] user_connect успешно авторизуется в db1"
+  if PGPASSWORD=fdw_reader_db1 psql -h db1 -p 5432 -U fdw_reader_db1 -d db1 -tAc 'SELECT 1' >/dev/null 2>&1; then
+    echo "[db2] fdw_reader_db1 успешно авторизуется в db1"
     break
   fi
   sleep 1
 done
 
-echo "[db2] Импортируем внешнюю схему с сервера my_work_server_name..."
-psql -v ON_ERROR_STOP=1 -U user_connect -d user_connect -d db2 <<'SQL'
+echo "[db2] Импортируем внешнюю схему с сервера cube_server_db1..."
+psql -v ON_ERROR_STOP=1 -U fdw_worker_db2 -d db2 <<'SQL'
 IMPORT FOREIGN SCHEMA public
-  FROM SERVER my_work_server_name
+  EXCEPT (canteen_price_h_mean_cube)
+  FROM SERVER cube_server_db1
   INTO public;
 SQL
 
