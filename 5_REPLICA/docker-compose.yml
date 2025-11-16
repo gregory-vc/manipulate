@@ -1,0 +1,39 @@
+services:
+  postgres-primary:
+    build:
+      context: ./primary
+    image: local/postgres-primary:18
+    container_name: postgres-primary
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: canteen
+      POSTGRES_PASSWORD: canteen
+      POSTGRES_DB: canteen
+    volumes:
+      - primary_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  postgres-replica:
+    build:
+      context: ./replica
+    image: local/postgres-replica:18
+    container_name: postgres-replica
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: canteen
+      PRIMARY_HOST: postgres-primary
+      PRIMARY_PORT: "5432"
+      REPLICATION_USER: repl_user
+      REPLICATION_PASSWORD: repl_password
+      REPLICATION_SLOT: replica_slot
+    volumes:
+      - replica_data:/var/lib/postgresql/data
+    depends_on:
+      - postgres-primary
+    ports:
+      - "5433:5432"
+
+volumes:
+  primary_data:
+  replica_data:
