@@ -8,8 +8,7 @@ header-includes:
   - \usepackage{graphicx}
   - \usepackage{ragged2e}
   - \usepackage{fvextra}
-  - \usepackage{pdflscape}
-  - \DefineVerbatimEnvironment{myverb}{Verbatim}{breaklines=true,breakanywhere=true}
+  - \DefineVerbatimEnvironment{myverb}{Verbatim}{breaklines=true,breakanywhere=true,fontsize=\scriptsize}
 lang: ru-RU
 ---
 
@@ -115,7 +114,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 
 Итог: `fdw_reader_db1` имеет только права чтения и автоматически получает доступ ко всем новым таблицам/последовательностям в `public`.
 
-## 3. «Аналитическая» база db2: имя, FDW, агрегат и куб
+## 3. «Аналитическая» база db2: имя, FDW, агрегат, куб и доступ к нему
 
 **Имя базы:** `db2`.
 
@@ -236,61 +235,7 @@ WHERE d.price IS NOT NULL
 GROUP BY CUBE (d.dishtype, d.cookid);
 ```
 
-## 4. Изменения в Canteen Dishes и обновление куба
-
-Скрипт `scripts/harmonic_mean.sh` демонстрирует внесение изменений в таблицу `canteendishes` в db1 и влияние на куб в db2.
-
-Фрагменты вывода `make run` (файл `logs.md`):
-
-```text
-=== Демоданные для куба: очистка → проверка отсутствия → вставка → refresh → проверка наличия ===
-— Удаляем старые демо-строки в db1 (dishid IN 10001,10002 | name LIKE 'HM Demo%')
-DELETE 2
- demo_rows_in_canteendishes 
-----------------------------
-                          0
-(1 row)
-
-— Обновляем куб и показываем группу (dishtype=6, cook=20) — до вставки
-REFRESH MATERIALIZED VIEW
- dishtype_id | dishtype_name | cook_id |       cook_name        | harmonic_price_per_portion |           dish_names           
--------------+---------------+---------+------------------------+----------------------------+--------------------------------
-           6 | Салат         |      20 | Линина Мария Семеновна |    49.37975708502024291448 | Салат "мостик", Салат крабовый
-(1 row)
-
-— Вставляем демо-блюда в db1 под (dishtype=6, cook=20)
-INSERT 0 2
- demo_rows_after_insert 
-------------------------
-                      2
-(1 row)
-
-— Обновляем куб и показываем группу (dishtype=6, cook=20) — после вставки
-REFRESH MATERIALIZED VIEW
- dishtype_id | dishtype_name | cook_id |       cook_name        | harmonic_price_per_portion |                            dish_names                            
--------------+---------------+---------+------------------------+----------------------------+------------------------------------------------------------------
-           6 | Салат         |      20 | Линина Мария Семеновна |    47.16954810097334395911 | HM Demo Salad 1, HM Demo Salad 2, Салат "мостик", Салат крабовый
-(1 row)
-```
-
-Из фрагмента видно:
-
-- В db1 удаляются старые строки демоданных и вставляются две новые записи `HM Demo Salad 1/2`.
-- В db2 после `REFRESH MATERIALIZED VIEW` меняется значение `harmonic_price_per_portion` и список блюд в соответствующей группе куба.
-
-### 4.1. Скрипт обновления куба
-
-```bash
-# scripts/harmonic_mean.sh (фрагмент)
-echo "=== Обновляем куб ==="
-$COMPOSE_CMD exec -T "$DB2_SERVICE" psql -U user -d db2 -v ON_ERROR_STOP=1 -c "REFRESH MATERIALIZED VIEW canteen_price_h_mean_cube;"
-```
-
-Этот же скрипт вызывает дополнительные `REFRESH` внутри демонстрации изменений.
-
-## 5. Пользователь аналитической БД для чтения куба и внешнее подключение
-
-### 5.1. Пользователь аналитической БД для чтения куба
+### 3.5. Пользователь аналитической БД для чтения куба
 
 ```sql
 -- db2/init/07-cube-reader.sql
@@ -302,7 +247,7 @@ GRANT USAGE ON SCHEMA public TO fdw_reader_db2;
 GRANT SELECT ON TABLE canteen_price_h_mean_cube TO fdw_reader_db2;
 ```
 
-### 5.2. Внешнее подключение к кубу из рабочей БД
+### 3.6. Внешнее подключение к кубу из рабочей БД
 
 ```sql
 -- db1/init/04-cube-fdw.sql
@@ -327,37 +272,41 @@ CREATE FOREIGN TABLE IF NOT EXISTS canteen_price_h_mean_cube (
   OPTIONS (schema_name 'public', table_name 'canteen_price_h_mean_cube');
 ```
 
-### 5.3. Подтверждение, что пользователь в рабочей БД может читать куб
+## 4. Изменения в Canteen Dishes, обновление и проверка куба
 
-В конце `logs.md` видно выполнение запроса к кубу через db1:
+Ниже приведен полный текст консольного вывода `make run` по шагам, с указанием соответствующих SQL-запросов. Этот вывод включает изменения в `Canteen Dishes`, обновление материализованного куба и проверку чтения куба через FDW из db1.
 
-```text
-\n=== Запрос куба через db1 (FDW → db2, user=fdw_reader_db2) ===
- dishtype_id | dishtype_name | cook_id |          cook_name          | harmonic_price_per_portion 
--------------+---------------+---------+-----------------------------+----------------------------
-             |               |         |                             |    25.96786962078554610581
-             |               |         |                             |    43.35357021173420494577
-             |               |      18 | Сливкина Наталья Эдуардовна |    43.30251352664913095041
-             |               |      19 | Ломоносов Игорь Павлович    |    53.31057199350141640576
-             |               |      20 | Линина Мария Семеновна      |    52.81709167163787121991
-             |               |      21 | Бабкина Надежда Григорьевна |    48.45118154078247239683
-           1 | Напитки       |         |                             |    15.88235294117647058814
-           1 | Напитки       |         |                             |    19.07164480322906155366
-           1 | Напитки       |      18 | Сливкина Наталья Эдуардовна |    23.33333333333333333217
-           1 | Напитки       |      21 | Бабкина Надежда Григорьевна |    25.00000000000000000000
-(10 rows)
+\noindent Команда запуска:
+
+```bash
+make run
 ```
 
-Этот фрагмент заменяет «скриншот»: он показывает, что запрос к foreign table `canteen_price_h_mean_cube` в db1 возвращает данные куба из db2.
+**Шаг 1. Обновление куба:**
 
-## 6. Полный вывод `make run` (logs.md)
+```sql
+REFRESH MATERIALIZED VIEW canteen_price_h_mean_cube;
+```
 
-Ниже полностью приведено содержимое файла `logs.md`:
-
-```text
+\begin{myverb}
 ./scripts/harmonic_mean.sh
 === Обновляем куб ===
 REFRESH MATERIALIZED VIEW
+\end{myverb}
+
+**Шаг 2. Вывод всего куба:**
+
+```sql
+SELECT dishtype_id, dishtype_name, cook_id, cook_name,
+       harmonic_price_per_portion, dish_names
+FROM canteen_price_h_mean_cube
+ORDER BY dishtype_id NULLS FIRST,
+         cook_id     NULLS FIRST,
+         dishtype_name,
+         cook_name;
+```
+
+\begin{myverb}
 === Весь куб ===
  dishtype_id | dishtype_name | cook_id |          cook_name          | harmonic_price_per_portion |                             dish_names                              
 -------------+---------------+---------+-----------------------------+----------------------------+---------------------------------------------------------------------
@@ -396,14 +345,45 @@ REFRESH MATERIALIZED VIEW
            6 | Салат         |      20 | Линина Мария Семеновна      |    47.16954810097334395911 | HM Demo Salad 1, HM Demo Salad 2, Салат "мостик", Салат крабовый
            6 | Салат         |      21 | Бабкина Надежда Григорьевна |    48.90000000000000000900 | Салат весенний
 (34 rows)
+\end{myverb}
 
+**Шаг 3. Самый "неэффективный" повар:**
+
+```sql
+SELECT cook_id, cook_name,
+       harmonic_price_per_portion,
+       (1.0 / harmonic_price_per_portion) AS portions_per_rub
+FROM canteen_price_h_mean_cube
+WHERE dishtype_id IS NULL
+  AND cook_id     IS NOT NULL
+ORDER BY harmonic_price_per_portion DESC NULLS LAST
+LIMIT 1;
+```
+
+\begin{myverb}
 === Самый неэффективный повар ===
 Чем больше harmonic_price_per_portion, тем “неэффективнее” повар: за 1 рубль получается меньше порций (в сценарии равного бюджета на позицию).
  cook_id |        cook_name         | harmonic_price_per_portion |    portions_per_rub    
 ---------+--------------------------+----------------------------+------------------------
       19 | Ломоносов Игорь Павлович |    53.31057199350141640576 | 0.01875800545006158378
 (1 row)
+\end{myverb}
 
+**Шаг 4. Демоданные для куба: очистка, вставка и повторная проверка:**
+
+```sql
+-- Очистка демоданных
+DELETE FROM canteendishes
+WHERE dishid IN (10001,10002)
+   OR dishname LIKE 'HM Demo%';
+
+SELECT count(*) AS demo_rows_in_canteendishes
+FROM canteendishes
+WHERE dishid IN (10001,10002)
+   OR dishname LIKE 'HM Demo%';
+```
+
+\begin{myverb}
 === Демоданные для куба: очистка → проверка отсутствия → вставка → refresh → проверка наличия ===
 — Удаляем старые демо-строки в db1 (dishid IN 10001,10002 | name LIKE 'HM Demo%')
 DELETE 2
@@ -411,28 +391,82 @@ DELETE 2
 ----------------------------
                           0
 (1 row)
+\end{myverb}
 
+```sql
+-- Состояние куба для (dishtype=6, cook=20) до вставки демоданных
+REFRESH MATERIALIZED VIEW canteen_price_h_mean_cube;
+
+SELECT dishtype_id, dishtype_name, cook_id, cook_name,
+       harmonic_price_per_portion, dish_names
+FROM canteen_price_h_mean_cube
+WHERE dishtype_id = 6
+  AND cook_id     = 20;
+```
+
+\begin{myverb}
 — Обновляем куб и показываем группу (dishtype=6, cook=20) — до вставки
 REFRESH MATERIALIZED VIEW
  dishtype_id | dishtype_name | cook_id |       cook_name        | harmonic_price_per_portion |           dish_names           
 -------------+---------------+---------+------------------------+----------------------------+--------------------------------
            6 | Салат         |      20 | Линина Мария Семеновна |    49.37975708502024291448 | Салат "мостик", Салат крабовый
 (1 row)
+\end{myverb}
 
+```sql
+-- Вставка демоданных
+INSERT INTO canteendishes (dishid, dishname, dishtype, cookid, price)
+VALUES
+  (10001, 'HM Demo Salad 1', 6, 20, 35.5),
+  (10002, 'HM Demo Salad 2', 6, 20, 62.0);
+
+SELECT count(*) AS demo_rows_after_insert
+FROM canteendishes
+WHERE dishid IN (10001,10002)
+   OR dishname LIKE 'HM Demo%';
+```
+
+\begin{myverb}
 — Вставляем демо-блюда в db1 под (dishtype=6, cook=20)
 INSERT 0 2
  demo_rows_after_insert 
 ------------------------
                       2
 (1 row)
+\end{myverb}
 
+```sql
+-- Состояние куба для (dishtype=6, cook=20) после вставки демоданных
+REFRESH MATERIALIZED VIEW canteen_price_h_mean_cube;
+
+SELECT dishtype_id, dishtype_name, cook_id, cook_name,
+       harmonic_price_per_portion, dish_names
+FROM canteen_price_h_mean_cube
+WHERE dishtype_id = 6
+  AND cook_id     = 20;
+```
+
+\begin{myverb}
 — Обновляем куб и показываем группу (dishtype=6, cook=20) — после вставки
 REFRESH MATERIALIZED VIEW
  dishtype_id | dishtype_name | cook_id |       cook_name        | harmonic_price_per_portion |                            dish_names                            
 -------------+---------------+---------+------------------------+----------------------------+------------------------------------------------------------------
            6 | Салат         |      20 | Линина Мария Семеновна |    47.16954810097334395911 | HM Demo Salad 1, HM Demo Salad 2, Салат "мостик", Салат крабовый
 (1 row)
+\end{myverb}
 
+**Шаг 5. Запрос куба через db1 (FDW → db2):**
+
+```sql
+SELECT dishtype_id, dishtype_name, cook_id, cook_name,
+       harmonic_price_per_portion
+FROM canteen_price_h_mean_cube
+ORDER BY dishtype_id NULLS FIRST,
+         cook_id     NULLS FIRST
+LIMIT 10;
+```
+
+\begin{myverb}
 \n=== Запрос куба через db1 (FDW → db2, user=fdw_reader_db2) ===
  dishtype_id | dishtype_name | cook_id |          cook_name          | harmonic_price_per_portion 
 -------------+---------------+---------+-----------------------------+----------------------------
@@ -447,5 +481,4 @@ REFRESH MATERIALIZED VIEW
            1 | Напитки       |      18 | Сливкина Наталья Эдуардовна |    23.33333333333333333217
            1 | Напитки       |      21 | Бабкина Надежда Григорьевна |    25.00000000000000000000
 (10 rows)
-```
-
+\end{myverb}
