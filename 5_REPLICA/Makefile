@@ -1,10 +1,17 @@
-.PHONY: build run
+.PHONY: build run citus
 
 build:
 	docker compose down -v && docker compose up -d --build
 
 run:
 	./scripts/check-replication.sh
+
+citus:
+	./scripts/check-citus.sh
+
+citus-run:
+	docker compose -f citus_cluster/docker-compose.yml down -v
+	docker compose -f citus_cluster/docker-compose.yml up -d --build
 
 report_pdf:
 	pandoc report.md -o report.pdf \

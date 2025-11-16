@@ -1,0 +1,107 @@
+services:
+  citus-coordinator:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    platform: linux/amd64
+    image: local/citus-coordinator:16
+    container_name: citus-coordinator
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: canteen
+    depends_on:
+      - citus-worker1
+      - citus-worker2
+    ports:
+      - "5440:5432"
+    volumes:
+      - coordinator_data:/var/lib/postgresql/data
+
+  citus-worker1:
+    build:
+      context: .
+      dockerfile: worker-primary/Dockerfile
+    image: local/citus-worker1:16
+    platform: linux/amd64
+    container_name: citus-worker1
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: canteen
+      CLIENT_SUBNETS: "172.16.0.0/12 10.0.0.0/8 192.168.0.0/16"
+    ports:
+      - "5441:5432"
+    volumes:
+      - worker1_data:/var/lib/postgresql/data
+
+  citus-worker1-replica:
+    build:
+      context: .
+      dockerfile: worker-replica/Dockerfile
+    image: local/citus-worker1-replica:16
+    platform: linux/amd64
+    container_name: citus-worker1-replica
+    restart: unless-stopped
+    environment:
+      PRIMARY_HOST: citus-worker1
+      PRIMARY_PORT: "5432"
+      REPLICATION_USER: repl_user
+      REPLICATION_PASSWORD: repl_password
+      REPLICATION_SLOT: worker1_slot
+      POSTGRES_PASSWORD: postgres
+    depends_on:
+      - citus-worker1
+    ports:
+      - "5442:5432"
+    volumes:
+      - worker1_replica_data:/var/lib/postgresql/data
+
+  citus-worker2:
+    build:
+      context: .
+      dockerfile: worker-primary/Dockerfile
+    image: local/citus-worker2:16
+    platform: linux/amd64
+    container_name: citus-worker2
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: canteen
+      CLIENT_SUBNETS: "172.16.0.0/12 10.0.0.0/8 192.168.0.0/16"
+    ports:
+      - "5443:5432"
+    volumes:
+      - worker2_data:/var/lib/postgresql/data
+
+  citus-worker2-replica:
+    build:
+      context: .
+      dockerfile: worker-replica/Dockerfile
+    image: local/citus-worker2-replica:16
+    platform: linux/amd64
+    container_name: citus-worker2-replica
+    restart: unless-stopped
+    environment:
+      PRIMARY_HOST: citus-worker2
+      PRIMARY_PORT: "5432"
+      REPLICATION_USER: repl_user
+      REPLICATION_PASSWORD: repl_password
+      REPLICATION_SLOT: worker2_slot
+      POSTGRES_PASSWORD: postgres
+    depends_on:
+      - citus-worker2
+    ports:
+      - "5444:5432"
+    volumes:
+      - worker2_replica_data:/var/lib/postgresql/data
+
+volumes:
+  coordinator_data:
+  worker1_data:
+  worker1_replica_data:
+  worker2_data:
+  worker2_replica_data:
