@@ -1,2 +1,5 @@
 backups
 .DS_Store
+6_ENTITY_FRAMEWORK/app/bin
+6_ENTITY_FRAMEWORK/app/obj
+.idea

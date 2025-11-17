@@ -1,0 +1,19 @@
+services:
+  db:
+    build:
+      context: ./db
+    container_name: ef-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: efdb
+    ports:
+      - "5432:5432"
+    volumes:
+      # Общий том для данных Postgres
+      - db_data:/var/lib/postgresql/data
+      # Монтируем репозиторий внутрь контейнера, чтобы класть сгенерированные классы в корень
+      - .:/workspace
+
+volumes:
+  db_data:
