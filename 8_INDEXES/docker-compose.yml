@@ -1,0 +1,16 @@
+services:
+  postgres:
+    build: .
+    container_name: indexes-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: indexes_user
+      POSTGRES_PASSWORD: indexes_pass
+      POSTGRES_DB: indexes_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data/pgdata
+volumes:
+  pgdata:
